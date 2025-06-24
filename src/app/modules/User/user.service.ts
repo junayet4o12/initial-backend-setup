@@ -38,7 +38,7 @@ async function getModelKeys(modelName: string): Promise<string[]> {
 }
 const getAllUsersFromDB = async (query: any) => {
   const keys = await getModelKeys('user');
-  const usersQuery = new QueryBuilder(prisma.user, query, keys);
+  const usersQuery = new QueryBuilder<typeof prisma.user>(prisma.user, query, keys);
   const result = await usersQuery
     .search(['firstName', 'lastName', 'email'])
     .filter()

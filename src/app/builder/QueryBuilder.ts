@@ -2,19 +2,21 @@
 
 import httpStatus from 'http-status';
 import AppError from '../errors/AppError';
-
-class QueryBuilder {
-  private model: any;
+type ExtractSelect<T> = T extends { findMany(args: { select: infer S }): any } ? S : never;
+class QueryBuilder<
+ModelDelegate extends { findMany: Function; count: Function;}
+> {
+  private model: ModelDelegate;
   private query: Record<string, unknown>;
-  private prismaQuery: any = {}; // Define as any for flexibility
+  private prismaQuery: any = {};
   private primaryKeyField: string = 'id'; // Default primary key field
   private modelKeys: string[] = []; // Store model keys
 
-  constructor(model: any, query: Record<string, unknown>, keys: string[]) {
+  constructor(model: ModelDelegate, query: Record<string, unknown>, keys: string[]) {
     this.model = model;
     this.query = query;
     this.modelKeys = keys || [];
-    
+
     // Ensure we always have at least the ID field
     if (!this.modelKeys.includes(this.primaryKeyField)) {
       this.modelKeys.push(this.primaryKeyField);
@@ -41,7 +43,7 @@ class QueryBuilder {
     const excludeFields = ['searchTerm', 'sort', 'limit', 'page', 'fields', 'exclude'];
     excludeFields.forEach(field => delete queryObj[field]);
 
-    const formattedFilters: Record<string, any> = {};
+    const formattedFilters: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(queryObj)) {
       if (typeof value === 'object' && value !== null) {
         let operatorFilter: Record<string, number> = {};
@@ -100,11 +102,11 @@ class QueryBuilder {
     const fieldsParam = this.query.fields as string;
     if (fieldsParam) {
       const fields = fieldsParam.split(',').filter(field => field.trim() !== '');
-      
+
       if (fields.length > 0) {
         // Start with a completely empty select object
         this.prismaQuery.select = {};
-        
+
         // Only include the specifically requested fields
         fields.forEach(field => {
           const trimmedField = field.trim();
@@ -116,7 +118,7 @@ class QueryBuilder {
             this.prismaQuery.select[trimmedField] = true;
           }
         });
-        
+
         // Double check: ensure at least one field is true
         const hasAtLeastOneTrueField = Object.values(this.prismaQuery.select).some(value => value === true);
         if (!hasAtLeastOneTrueField) {
@@ -128,17 +130,24 @@ class QueryBuilder {
     return this;
   }
 
+  customFields(data: ExtractSelect<ModelDelegate>) {
+    if (data) {
+      this.prismaQuery.select = data
+    }
+    return this
+  }
+
   // Exclude Fields
   exclude() {
     const excludeParam = this.query.exclude as string;
     if (excludeParam) {
       const excludeFields = excludeParam.split(',').filter(field => field.trim() !== '');
-      
+
       if (excludeFields.length > 0) {
         // If select is not already defined, initialize it with all model keys set to true
         if (!this.prismaQuery.select) {
           this.prismaQuery.select = {};
-          
+
           // Set all model keys to true by default
           this.modelKeys.forEach(key => {
             this.prismaQuery.select[key] = true;
@@ -149,13 +158,13 @@ class QueryBuilder {
             this.prismaQuery.select[key] = true;
           });
         }
-        
+
         // Set each excluded field to false
         excludeFields.forEach(field => {
           const trimmedField = field.trim();
           this.prismaQuery.select[trimmedField] = false;
         });
-        
+
         // Ensure at least one field is true
         const hasAtLeastOneTrueField = Object.values(this.prismaQuery.select).some(value => value === true);
         if (!hasAtLeastOneTrueField) {
@@ -176,12 +185,12 @@ class QueryBuilder {
       if (Object.keys(this.prismaQuery.select).length === 0) {
         delete this.prismaQuery.select;
       }
-      
+
       // For fields parameter: Keep the select as is to return only requested fields
       if (this.query.fields) {
         // For fields, we don't automatically add the ID field
         // This allows users to get exactly the fields they requested
-        
+
         // However, we need at least one true field for Prisma to work
         const hasAtLeastOneTrueField = Object.values(this.prismaQuery.select).some(value => value === true);
         if (!hasAtLeastOneTrueField) {
@@ -201,28 +210,28 @@ class QueryBuilder {
         }
       }
     }
-    
+
     // For debugging
     // console.log('Final query:', JSON.stringify(this.prismaQuery, null, 2));
-    
+
     // Get the results from Prisma
     const results = await this.model.findMany(this.prismaQuery);
-    
+
     // If fields parameter is used, we need to post-process the results
     // to remove the ID field if it wasn't explicitly requested
     if (this.query.fields && results.length > 0) {
       const fieldsRequested = (this.query.fields as string).split(',').map(f => f.trim());
-      
+
       // If ID wasn't explicitly requested, remove it from the results
       if (!fieldsRequested.includes(this.primaryKeyField)) {
-        return results.map((item: Record<string, any>) => {
-          const newItem: Record<string, any> = {...item};
+        return results.map((item: Record<string, unknown>) => {
+          const newItem: Record<string, unknown> = { ...item };
           delete newItem[this.primaryKeyField];
           return newItem;
         });
       }
     }
-    
+
     return results;
   }
 
