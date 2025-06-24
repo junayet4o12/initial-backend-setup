@@ -31,7 +31,7 @@ router.post(
 
 router.post(
   '/change-password',
-  auth('USER', 'SUPERADMIN', 'SUPERADMIN'),
+  auth('USER', 'SUPERADMIN'),
   AuthControllers.changePassword,
 );
 router.post(
