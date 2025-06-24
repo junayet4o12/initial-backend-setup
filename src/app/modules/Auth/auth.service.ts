@@ -1,15 +1,13 @@
 import * as bcrypt from 'bcrypt';
 import httpStatus from 'http-status';
-import { JwtPayload, Secret } from 'jsonwebtoken';
+import { JwtPayload, Secret, SignOptions } from 'jsonwebtoken';
 import config from '../../../config';
 import AppError from '../../errors/AppError';
 import { generateToken } from '../../utils/generateToken';
 import prisma from '../../utils/prisma';
-import { UserServices } from '../User/user.service';
 import { User } from '@prisma/client';
 import { verification } from '../../utils/generateEmailVerificationLink';
-import Email, { sendEmail, sendOtpViaMail } from '../../utils/sendMail';
-import { failedEmailVerificationHTML, successEmailVerificationHTML } from '../User/user.constant';
+import Email, { sendOtpViaMail } from '../../utils/sendMail';
 import { Response } from 'express';
 import { generateOTP, getOtpStatusMessage, otpExpiryTime } from '../../utils/otp';
 import jwt from 'jsonwebtoken'
@@ -33,7 +31,7 @@ const loginUserFromDB = async (res: Response, payload: {
     throw new AppError(httpStatus.BAD_REQUEST, 'Password incorrect');
   }
 
-  if (!userData.email || !userData.emailVerificationTokenExpires || new Date(userData.emailVerificationTokenExpires) < new Date()) {
+  if (userData.role !== 'SUPERADMIN' && (!userData.email || !userData.emailVerificationTokenExpires || new Date(userData.emailVerificationTokenExpires) < new Date())) {
     const otp = generateOTP();
 
     await prisma.$transaction(async (tx) => {
@@ -66,7 +64,7 @@ const loginUserFromDB = async (res: Response, payload: {
         role: userData.role,
       },
       config.jwt.access_secret as Secret,
-      config.jwt.access_expires_in as string,
+      config.jwt.access_expires_in as SignOptions['expiresIn'],
     );
     return {
       id: userData.id,
@@ -76,6 +74,7 @@ const loginUserFromDB = async (res: Response, payload: {
       accessToken: accessToken,
     };
   }
+
 
 };
 
@@ -143,7 +142,7 @@ const verifyMail = async (payload: { email: string; otp: string }) => {
       role: userData.role,
     },
     config.jwt.access_secret as Secret,
-    config.jwt.access_expires_in as string,
+    config.jwt.access_expires_in as SignOptions['expiresIn'],
   );
   return {
     id: userData.id,

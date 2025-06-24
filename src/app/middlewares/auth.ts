@@ -5,8 +5,21 @@ import config from '../../config';
 import AppError from '../errors/AppError';
 import prisma from '../utils/prisma';
 import { verifyToken } from '../utils/verifyToken';
+import { UserRoleEnum } from '@prisma/client';
 
-const auth = (...roles: string[]) => {
+type TupleHasDuplicate<T extends readonly unknown[]> =
+  T extends [infer F, ...infer R]
+  ? F extends R[number]
+  ? true
+  : TupleHasDuplicate<R>
+  : false;
+
+type NoDuplicates<T extends readonly unknown[]> =
+  TupleHasDuplicate<T> extends true ? never : T;
+
+const auth = <T extends readonly UserRoleEnum[]>(
+  ...roles: NoDuplicates<T> extends never ? never : T
+) => {
   return async (req: Request, _res: Response, next: NextFunction) => {
     try {
       const token = req.headers.authorization;

@@ -7,18 +7,18 @@ const router = express.Router();
 
 router.post(
   '/login',
-  validateRequest(authValidation.loginUser),
+  validateRequest.body(authValidation.loginUser),
   AuthControllers.loginUser,
 );
 
 router.post(
   '/register',
-  validateRequest(authValidation.registerUser),
+  validateRequest.body(authValidation.registerUser),
   AuthControllers.registerUser,
 );
 router.post(
   '/verify-email',
-  validateRequest(authValidation.verifyOtpValidationSchema),
+  validateRequest.body(authValidation.verifyOtpValidationSchema),
   AuthControllers.verifyMail,
 );
 
@@ -31,22 +31,22 @@ router.post(
 
 router.post(
   '/change-password',
-  auth('USER', 'ADMIN'),
+  auth('USER', 'SUPERADMIN', 'SUPERADMIN'),
   AuthControllers.changePassword,
 );
 router.post(
   '/forget-password',
-  validateRequest(authValidation.forgetPasswordValidationSchema),
+  validateRequest.body(authValidation.forgetPasswordValidationSchema),
   AuthControllers.forgetPassword,
 );
 router.post(
   '/forget-password/verify-otp',
-  validateRequest(authValidation.verifyOtpValidationSchema),
+  validateRequest.body(authValidation.verifyOtpValidationSchema),
   AuthControllers.verifyForgotPassOtp,
 );
 router.post(
   '/reset-password',
-  validateRequest(authValidation.resetPasswordValidationSchema),
+  validateRequest.body(authValidation.resetPasswordValidationSchema),
   AuthControllers.resetPassword,
 );
 

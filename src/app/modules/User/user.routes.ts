@@ -6,18 +6,18 @@ const router = express.Router();
 
 router.get('/', UserControllers.getAllUsers);
 
-router.get('/me', auth('USER', 'ADMIN'), UserControllers.getMyProfile);
+router.get('/me', auth('USER', 'SUPERADMIN'), UserControllers.getMyProfile);
 
 router.get('/:id', UserControllers.getUserDetails);
 router.put(
   '/update-profile',
-  auth('USER', 'ADMIN'),
+  auth('USER', 'SUPERADMIN'),
   UserControllers.updateMyProfile,
 );
 
 router.put(
   '/update-user/:id',
-  auth('ADMIN'),
+  auth('SUPERADMIN'),
   UserControllers.updateUserRoleStatus,
 );
 
