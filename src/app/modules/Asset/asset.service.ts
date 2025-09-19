@@ -21,6 +21,7 @@ const uploadMultipleAssets = async (files: Express.Multer.File[] | undefined) =>
     if (!files || files.length === 0) {
         throw new AppError(httpStatus.BAD_REQUEST, 'Provide at least one asset');
     }
+    console.log(files)
     const locations = uploadFiles(files);
     return locations;
 };

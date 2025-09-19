@@ -60,7 +60,7 @@ const updateProfileImg = async (id: string, previousImg: string, req: Request, f
         id
       },
       data: {
-        profile: location
+        profile: location.url
       }
     });
     if (previousImg) {

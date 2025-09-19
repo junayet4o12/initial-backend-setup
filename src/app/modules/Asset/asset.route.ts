@@ -4,7 +4,7 @@ import auth from '../../middlewares/auth';
 import { parseBody } from '../../middlewares/parseBody';
 import validateRequest from '../../middlewares/validateRequest';
 import { AssetValidation } from './asset.validation';
-import { upload } from '../../utils/fileUploader';
+import { upload } from '../../middlewares/upload';
 const router = express.Router();
 
 // Single file upload

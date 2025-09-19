@@ -1,7 +1,10 @@
 import fs from 'fs';
 import path from 'path';
+import config from '../../config';
 
 const baseUploadDir = path.join(__dirname, '..', 'upload');
+const nodeEnv = config.env as 'development' | 'production';
+
 
 const getSubFolder = (mimetype: string): string => {
   if (mimetype.startsWith('image/')) return 'images';
@@ -31,8 +34,8 @@ export const deleteFile = (relPath: string): boolean => {
   return false;
 };
 
-export const uploadSingleFile = (file: Express.Multer.File): string => {
- 
+export const uploadSingleFile = (file: Express.Multer.File) => {
+
   const subFolder = getSubFolder(file.mimetype);
   const folderPath = path.join(baseUploadDir, subFolder);
   const filename = Date.now() + '-' + Math.round(Math.random() * 1e9) + path.extname(file.originalname);
@@ -43,27 +46,21 @@ export const uploadSingleFile = (file: Express.Multer.File): string => {
   fs.writeFileSync(filePath, file.buffer);
 
   const relPath = path.join('upload', subFolder, filename);
-  return `/${normalizePath(relPath)}`;
+  return {
+    name: file.originalname,
+    url: `/${normalizePath(relPath)}`
+  };
 };
 
-export const uploadFiles = (files: Express.Multer.File[]): string[] => {
-  const keptFiles: string[] = [];
+export const uploadFiles = (files: Express.Multer.File[]) => {
+  const keptFiles: {
+    name: string;
+    url: string;
+  }[] = [];
 
   for (const file of files) {
-    const subFolder = getSubFolder(file.mimetype);
-    const folderPath = path.join(baseUploadDir, subFolder);
-    const existingFiles = fs.readdirSync(folderPath);
-
-    const isDuplicate = existingFiles.some((f) =>
-      f.toLowerCase() === file.originalname.toLowerCase()
-    );
-
-    if (isDuplicate) {
-      fs.unlinkSync(file.path);
-    } else {
-      const relPath = path.join('upload', subFolder, file.filename);
-      keptFiles.push(`/${normalizePath(relPath)}`);
-    }
+    const url = uploadSingleFile(file)
+    keptFiles.push(url)
   }
 
   return keptFiles;
@@ -76,7 +73,7 @@ export const deleteFiles = (filePaths: string[]): string[] => {
 export const updateSingleFile = (
   oldFilePath: string,
   newFile: Express.Multer.File
-): string => {
+) => {
   deleteFile(oldFilePath);
   return uploadSingleFile(newFile);
 };
@@ -84,7 +81,12 @@ export const updateSingleFile = (
 export const updateFiles = (
   oldPaths: string[],
   newFiles: Express.Multer.File[]
-): { deleted: string[]; saved: string[] } => {
+): {
+  deleted: string[]; saved: {
+    name: string;
+    url: string;
+  }[]
+} => {
   const deleted = deleteFiles(oldPaths);
   const saved = uploadFiles(newFiles);
   return { deleted, saved };
